@@ -2,8 +2,8 @@
 #define _OUR_DESCRIPTOR_H_
 
 #include <stdint.h>
+#include "types.h"
 
-#define CONFIG_SIZE 128
 #define RESOLUTION_MULTIPLIER 120
 
 #define REPORT_ID_LEDS 98

@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <vector>
 
+#define CONFIG_SIZE 128
+
 enum class ConfigCommand : int8_t {
     NO_COMMAND = 0,
     RESET_INTO_BOOTSEL = 1,
