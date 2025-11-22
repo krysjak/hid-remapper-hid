@@ -35,20 +35,20 @@
 // These IDs are bogus. If you want to distribute any hardware using this,
 // you will have to get real ones.
 // Logitech G502 HERO Gaming Mouse
-#define USB_VID 0x046D
-#define USB_PID 0xC08B
+// #define USB_VID 0x046D
+// #define USB_PID 0xC08B
 
-#ifndef USB_MANUFACTURER
-#define USB_MANUFACTURER "Logitech"
-#endif
+// #ifndef USB_MANUFACTURER
+// #define USB_MANUFACTURER "Logitech"
+// #endif
 
-#ifndef USB_PRODUCT
-#define USB_PRODUCT "G502 HERO Gaming Mouse"
-#endif
+// #ifndef USB_PRODUCT
+// #define USB_PRODUCT "G502 HERO Gaming Mouse"
+// #endif
 
-#ifndef USB_SERIAL_NUMBER
-#define USB_SERIAL_NUMBER "000000000000"
-#endif
+// #ifndef USB_SERIAL_NUMBER
+// #define USB_SERIAL_NUMBER "000000000000"
+// #endif
 
 tusb_desc_device_t desc_device = {
     .bLength = sizeof(tusb_desc_device_t),
@@ -59,9 +59,9 @@ tusb_desc_device_t desc_device = {
     .bDeviceProtocol = 0x00,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
 
-    .idVendor = USB_VID,
-    .idProduct = USB_PID,
-    .bcdDevice = 0x0100,
+    .idVendor = 0, // Set in callback
+    .idProduct = 0, // Set in callback
+    .bcdDevice = 0, // Set in callback
 
     .iManufacturer = 0x01,
     .iProduct = 0x02,
@@ -117,9 +117,9 @@ const uint8_t* configuration_descriptors[] = {
 
 char const* string_desc_arr[] = {
     (const char[]){ 0x09, 0x04 },  // 0: is supported language is English (0x0409)
-    USB_MANUFACTURER,              // 1: Manufacturer
-    USB_PRODUCT,                   // 2: Product
-    USB_SERIAL_NUMBER,             // 3: Serial
+    NULL,                          // 1: Manufacturer (Dynamic)
+    NULL,                          // 2: Product (Dynamic)
+    NULL,                          // 3: Serial (Dynamic)
 };
 
 // Invoked when received GET DEVICE DESCRIPTOR
@@ -128,7 +128,11 @@ uint8_t const* tud_descriptor_device_cb() {
     if ((our_descriptor->vid != 0) && (our_descriptor->pid != 0)) {
         desc_device.idVendor = our_descriptor->vid;
         desc_device.idProduct = our_descriptor->pid;
+    } else {
+        desc_device.idVendor = config_usb_vid;
+        desc_device.idProduct = config_usb_pid;
     }
+    desc_device.bcdDevice = config_bcd_device;
     return (uint8_t const*) &desc_device;
 }
 
@@ -171,28 +175,25 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         if (!(index < sizeof(string_desc_arr) / sizeof(string_desc_arr[0])))
             return NULL;
 
-        if (index == 3) {
-            // Serial number
-            uint64_t unique_id = get_unique_id();
-            chr_count = 0;
-            // Convert 64-bit ID to 16 hex characters
-            for (int i = 0; i < 16; i++) {
-                int nibble = (unique_id >> (60 - i * 4)) & 0xF;
-                _desc_str[1 + i] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
-                chr_count++;
-            }
+        const char* str;
+        if (index == 1) {
+            str = config_manufacturer;
+        } else if (index == 2) {
+            str = config_product;
+        } else if (index == 3) {
+            str = config_serial;
         } else {
-            const char* str = string_desc_arr[index];
+            return NULL;
+        }
 
-            // Cap at max char
-            chr_count = strlen(str);
-            if (chr_count > 31)
-                chr_count = 31;
+        // Cap at max char
+        chr_count = strlen(str);
+        if (chr_count > 31)
+            chr_count = 31;
 
-            // Convert ASCII string into UTF-16
-            for (uint8_t i = 0; i < chr_count; i++) {
-                _desc_str[1 + i] = str[i];
-            }
+        // Convert ASCII string into UTF-16
+        for (uint8_t i = 0; i < chr_count; i++) {
+            _desc_str[1 + i] = str[i];
         }
     }
 

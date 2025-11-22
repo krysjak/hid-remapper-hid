@@ -32,6 +32,8 @@ enum class ConfigCommand : int8_t {
     CLEAR_QUIRKS = 23,
     ADD_QUIRK = 24,
     GET_QUIRK = 25,
+    SET_IDENTITY = 26,
+    INJECT_INPUT = 27,
 };
 
 struct usage_def_t {
@@ -196,12 +198,12 @@ struct register_ptrs_t {
 struct __attribute__((packed)) set_feature_t {
     uint8_t version;
     ConfigCommand command;
-    uint8_t data[26];
+    uint8_t data[CONFIG_SIZE - 6];
     uint32_t crc32;
 };
 
 struct __attribute__((packed)) get_feature_t {
-    uint8_t data[28];
+    uint8_t data[CONFIG_SIZE - 4];
     uint32_t crc32;
 };
 
@@ -312,7 +314,27 @@ typedef persist_config_v12_t persist_config_v13_t;
 
 typedef persist_config_v13_t persist_config_v18_t;
 
-typedef persist_config_v18_t persist_config_t;
+struct __attribute__((packed)) persist_config_v19_t {
+    uint8_t version;
+    uint8_t flags;
+    uint8_t unmapped_passthrough_layer_mask;
+    uint32_t partial_scroll_timeout;
+    uint16_t mapping_count;
+    uint8_t interval_override;
+    uint32_t tap_hold_threshold;
+    uint8_t gpio_debounce_time_ms;
+    uint8_t our_descriptor_number;
+    uint8_t macro_entry_duration;
+    uint16_t quirk_count;
+    uint16_t usb_vid;
+    uint16_t usb_pid;
+    uint16_t bcd_device;
+    char manufacturer[32];
+    char product[32];
+    char serial[32];
+};
+
+typedef persist_config_v19_t persist_config_t;
 
 struct __attribute__((packed)) get_config_t {
     uint8_t version;
@@ -432,6 +454,23 @@ struct __attribute__((packed)) monitor_report_t {
 
 struct __attribute__((packed)) uint16_val_t {
     uint16_t val;
+};
+
+struct __attribute__((packed)) set_identity_t {
+    uint16_t usb_vid;
+    uint16_t usb_pid;
+    uint16_t bcd_device;
+    char manufacturer[32];
+    char product[32];
+    char serial[32];
+};
+
+struct __attribute__((packed)) inject_input_t {
+    uint8_t buttons;
+    int16_t x;
+    int16_t y;
+    int8_t wheel;
+    int8_t pan;
 };
 
 #endif

@@ -12,4 +12,11 @@ void handle_set_report1(uint8_t report_id, uint8_t const* buffer, uint16_t bufsi
 
 void reset_resolution_multiplier();
 
+extern uint16_t config_usb_vid;
+extern uint16_t config_usb_pid;
+extern uint16_t config_bcd_device;
+extern char config_manufacturer[32];
+extern char config_product[32];
+extern char config_serial[32];
+
 #endif
