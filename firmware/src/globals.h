@@ -69,4 +69,11 @@ extern bool boot_protocol_updated;
 
 extern volatile PersistConfigReturnCode persist_config_return_code;
 
+extern uint16_t cloned_vid;
+extern uint16_t cloned_pid;
+extern char cloned_manufacturer[32];
+extern char cloned_product[32];
+extern char cloned_serial[32];
+extern volatile bool cloning_complete;
+
 #endif
