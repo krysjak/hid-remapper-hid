@@ -34,8 +34,21 @@
 
 // These IDs are bogus. If you want to distribute any hardware using this,
 // you will have to get real ones.
-#define USB_VID 0xCAFE
-#define USB_PID 0xBAF2
+// Logitech G502 HERO Gaming Mouse
+#define USB_VID 0x046D
+#define USB_PID 0xC08B
+
+#ifndef USB_MANUFACTURER
+#define USB_MANUFACTURER "Logitech"
+#endif
+
+#ifndef USB_PRODUCT
+#define USB_PRODUCT "G502 HERO Gaming Mouse"
+#endif
+
+#ifndef USB_SERIAL_NUMBER
+#define USB_SERIAL_NUMBER "000000000000"
+#endif
 
 tusb_desc_device_t desc_device = {
     .bLength = sizeof(tusb_desc_device_t),
@@ -52,7 +65,7 @@ tusb_desc_device_t desc_device = {
 
     .iManufacturer = 0x01,
     .iProduct = 0x02,
-    .iSerialNumber = 0x00,
+    .iSerialNumber = 0x03,
 
     .bNumConfigurations = 0x01,
 };
@@ -104,12 +117,9 @@ const uint8_t* configuration_descriptors[] = {
 
 char const* string_desc_arr[] = {
     (const char[]){ 0x09, 0x04 },  // 0: is supported language is English (0x0409)
-#ifdef PICO_RP2350
-    "RP2350",  // 1: Manufacturer
-#else
-    "RP2040",  // 1: Manufacturer
-#endif
-    "HID Remapper XXXX",  // 2: Product
+    USB_MANUFACTURER,              // 1: Manufacturer
+    USB_PRODUCT,                   // 2: Product
+    USB_SERIAL_NUMBER,             // 3: Serial
 };
 
 // Invoked when received GET DEVICE DESCRIPTOR
@@ -161,22 +171,27 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         if (!(index < sizeof(string_desc_arr) / sizeof(string_desc_arr[0])))
             return NULL;
 
-        const char* str = string_desc_arr[index];
-
-        // Cap at max char
-        chr_count = strlen(str);
-        if (chr_count > 31)
-            chr_count = 31;
-
-        // Convert ASCII string into UTF-16
-        for (uint8_t i = 0; i < chr_count; i++) {
-            _desc_str[1 + i] = str[i];
-        }
-
-        if (index == 2) {
+        if (index == 3) {
+            // Serial number
             uint64_t unique_id = get_unique_id();
-            for (uint8_t i = 0; i < 4; i++) {
-                _desc_str[1 + chr_count - 4 + i] = id_chars[(unique_id >> (15 - i * 5)) & 0x1F];
+            chr_count = 0;
+            // Convert 64-bit ID to 16 hex characters
+            for (int i = 0; i < 16; i++) {
+                int nibble = (unique_id >> (60 - i * 4)) & 0xF;
+                _desc_str[1 + i] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
+                chr_count++;
+            }
+        } else {
+            const char* str = string_desc_arr[index];
+
+            // Cap at max char
+            chr_count = strlen(str);
+            if (chr_count > 31)
+                chr_count = 31;
+
+            // Convert ASCII string into UTF-16
+            for (uint8_t i = 0; i < chr_count; i++) {
+                _desc_str[1 + i] = str[i];
             }
         }
     }
