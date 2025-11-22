@@ -10,13 +10,9 @@ PersistConfigReturnCode persist_config();
 uint16_t handle_get_report1(uint8_t report_id, uint8_t* buffer, uint16_t reqlen);
 void handle_set_report1(uint8_t report_id, uint8_t const* buffer, uint16_t bufsize);
 
+
 void reset_resolution_multiplier();
 
-extern uint16_t config_usb_vid;
-extern uint16_t config_usb_pid;
-extern uint16_t config_bcd_device;
-extern char config_manufacturer[32];
-extern char config_product[32];
-extern char config_serial[32];
+const uint8_t COMMAND_INJECT_INPUT = 0x42;
 
 #endif

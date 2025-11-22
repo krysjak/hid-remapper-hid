@@ -69,4 +69,13 @@ extern bool boot_protocol_updated;
 
 extern volatile PersistConfigReturnCode persist_config_return_code;
 
+struct injected_input_t {
+    int16_t x;
+    int16_t y;
+    uint8_t buttons;
+};
+
+extern injected_input_t injected_input;
+extern volatile bool injected_input_updated;
+
 #endif

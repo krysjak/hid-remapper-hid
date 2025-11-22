@@ -1390,6 +1390,46 @@ void process_mapping(bool auto_repeat) {
         }
     }
 
+    if (injected_input.x != 0 || injected_input.y != 0) {
+        uint32_t usage_x = 0x00010030;
+        uint32_t usage_y = 0x00010031;
+        if (our_usages_flat.count(usage_x)) {
+            usage_def_t& our_usage = our_usages_flat[usage_x];
+            int32_t existing_val = get_bits((uint8_t*) reports[our_usage.report_id], report_sizes[our_usage.report_id], our_usage.bitpos, our_usage.size);
+            if (our_usage.logical_minimum < 0) {
+                if (existing_val & (1 << (our_usage.size - 1))) {
+                    existing_val |= 0xFFFFFFFF << our_usage.size;
+                }
+            }
+            put_bits((uint8_t*) reports[our_usage.report_id], report_sizes[our_usage.report_id], our_usage.bitpos, our_usage.size, existing_val + injected_input.x);
+        }
+        if (our_usages_flat.count(usage_y)) {
+            usage_def_t& our_usage = our_usages_flat[usage_y];
+            int32_t existing_val = get_bits((uint8_t*) reports[our_usage.report_id], report_sizes[our_usage.report_id], our_usage.bitpos, our_usage.size);
+            if (our_usage.logical_minimum < 0) {
+                if (existing_val & (1 << (our_usage.size - 1))) {
+                    existing_val |= 0xFFFFFFFF << our_usage.size;
+                }
+            }
+            put_bits((uint8_t*) reports[our_usage.report_id], report_sizes[our_usage.report_id], our_usage.bitpos, our_usage.size, existing_val + injected_input.y);
+        }
+        injected_input.x = 0;
+        injected_input.y = 0;
+    }
+
+    if (injected_input.buttons) {
+        for (int i = 0; i < 8; i++) {
+            if (injected_input.buttons & (1 << i)) {
+                uint32_t usage = 0x00090001 + i;
+                auto search = our_usages_flat.find(usage);
+                if (search != our_usages_flat.end()) {
+                    const usage_def_t& our_usage = search->second;
+                    put_bits((uint8_t*) reports[our_usage.report_id], report_sizes[our_usage.report_id], our_usage.bitpos, our_usage.size, 1);
+                }
+            }
+        }
+    }
+
     for (unsigned int i = 0; i < report_ids.size(); i++) {  // XXX what order should we go in? maybe keyboard first so that mappings to ctrl-left click work as expected?
         uint8_t report_id = report_ids[i];
         if (our_descriptor->sanitize_report != nullptr) {

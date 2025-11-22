@@ -54,3 +54,6 @@ bool boot_protocol_keyboard = false;
 bool boot_protocol_updated = false;
 
 volatile PersistConfigReturnCode persist_config_return_code = PersistConfigReturnCode::UNKNOWN;
+
+injected_input_t injected_input = { 0, 0, 0 };
+volatile bool injected_input_updated = false;
