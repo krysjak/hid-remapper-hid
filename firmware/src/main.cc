@@ -254,31 +254,6 @@ int main() {
 
     next_print = time_us_64() + 1000000;
 
-#if CFG_TUH_ENABLED
-    // Disconnect from PC to prevent enumeration with default values
-    tud_disconnect();
-    
-    uint64_t wait_start = time_us_64();
-    printf("Waiting for mouse to clone...\n");
-    
-    // Wait for cloning to complete or timeout (5 seconds)
-    while (!cloning_complete && (time_us_64() - wait_start < 5000000)) {
-        tuh_task(); // Keep host stack alive to enumerate mouse
-        
-        // We also need to handle basic board tasks if any
-        // but tuh_task is the critical one for enumeration callbacks
-    }
-    
-    if (cloning_complete) {
-        printf("Cloning complete! VID: %04X PID: %04X\n", cloned_vid, cloned_pid);
-    } else {
-        printf("Cloning timed out. Using defaults.\n");
-    }
-
-    // Connect to PC with (hopefully) cloned info
-    tud_connect();
-#endif
-
     while (true) {
         bool tick;
         bool new_report;

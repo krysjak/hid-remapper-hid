@@ -124,13 +124,8 @@ char const* string_desc_arr[] = {
 
 // Invoked when received GET DEVICE DESCRIPTOR
 // Application return pointer to descriptor
-// Invoked when received GET DEVICE DESCRIPTOR
-// Application return pointer to descriptor
 uint8_t const* tud_descriptor_device_cb() {
-    if (cloning_complete && cloned_vid != 0 && cloned_pid != 0) {
-        desc_device.idVendor = cloned_vid;
-        desc_device.idProduct = cloned_pid;
-    } else if ((our_descriptor->vid != 0) && (our_descriptor->pid != 0)) {
+    if ((our_descriptor->vid != 0) && (our_descriptor->pid != 0)) {
         desc_device.idVendor = our_descriptor->vid;
         desc_device.idProduct = our_descriptor->pid;
     }
@@ -176,41 +171,19 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         if (!(index < sizeof(string_desc_arr) / sizeof(string_desc_arr[0])))
             return NULL;
 
-        const char* str = NULL;
-
-        if (index == 1) { // Manufacturer
-            if (cloning_complete && cloned_manufacturer[0] != 0) {
-                str = cloned_manufacturer;
-            } else {
-                str = string_desc_arr[1];
-            }
-        } else if (index == 2) { // Product
-            if (cloning_complete && cloned_product[0] != 0) {
-                str = cloned_product;
-            } else {
-                str = string_desc_arr[2];
-            }
-        } else if (index == 3) { // Serial
-            if (cloning_complete && cloned_serial[0] != 0) {
-                str = cloned_serial;
-            } else {
-                 // Serial number
-                uint64_t unique_id = get_unique_id();
-                chr_count = 0;
-                // Convert 64-bit ID to 16 hex characters
-                for (int i = 0; i < 16; i++) {
-                    int nibble = (unique_id >> (60 - i * 4)) & 0xF;
-                    _desc_str[1 + i] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
-                    chr_count++;
-                }
-                // Skip the generic string processing below for serial
-                goto process_string;
+        if (index == 3) {
+            // Serial number
+            uint64_t unique_id = get_unique_id();
+            chr_count = 0;
+            // Convert 64-bit ID to 16 hex characters
+            for (int i = 0; i < 16; i++) {
+                int nibble = (unique_id >> (60 - i * 4)) & 0xF;
+                _desc_str[1 + i] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
+                chr_count++;
             }
         } else {
-            str = string_desc_arr[index];
-        }
+            const char* str = string_desc_arr[index];
 
-        if (str) {
             // Cap at max char
             chr_count = strlen(str);
             if (chr_count > 31)
@@ -223,7 +196,6 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         }
     }
 
-process_string:
     // first byte is length (including header), second byte is string type
     _desc_str[0] = (TUSB_DESC_STRING << 8) | (2 * chr_count + 2);
 

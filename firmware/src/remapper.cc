@@ -125,13 +125,6 @@ uint16_t active_ports_mask = 0;
 
 uint8_t dpad_state = 0;
 
-uint16_t cloned_vid = 0;
-uint16_t cloned_pid = 0;
-char cloned_manufacturer[32] = "Logitech";
-char cloned_product[32] = "G502 HERO Gaming Mouse";
-char cloned_serial[32] = "000000000000";
-volatile bool cloning_complete = false;
-
 inline int32_t handle_scroll(map_source_t& map_source, uint32_t target_usage, int32_t movement, uint64_t now) {
     // movement is always non-zero
     int32_t ret = 0;

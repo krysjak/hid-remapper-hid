@@ -7,7 +7,6 @@
 #include "pico/time.h"
 
 #include "descriptor_parser.h"
-#include "globals.h"
 #include "out_report.h"
 #include "remapper.h"
 #include "tick.h"
@@ -60,67 +59,6 @@ void descriptor_received_callback(uint16_t vendor_id, uint16_t product_id, const
     parse_descriptor(vendor_id, product_id, report_descriptor, len, interface, itf_num);
 }
 
-static uint16_t temp_buf[128];
-static tusb_desc_device_t desc_device;
-
-void check_product(uint8_t daddr);
-void check_serial(uint8_t daddr);
-
-void cb_serial(tuh_xfer_t* xfer) {
-    if (xfer->result == XFER_RESULT_SUCCESS) {
-        for(int i=0; i<31 && temp_buf[i]; i++) cloned_serial[i] = (char)temp_buf[i];
-        cloned_serial[31] = 0;
-    }
-    cloning_complete = true;
-}
-
-void check_serial(uint8_t daddr) {
-    if (desc_device.iSerialNumber) {
-        tuh_descriptor_get_string(daddr, desc_device.iSerialNumber, 0x0409, temp_buf, 255, cb_serial, 0);
-    } else {
-        cloning_complete = true;
-    }
-}
-
-void cb_product(tuh_xfer_t* xfer) {
-    if (xfer->result == XFER_RESULT_SUCCESS) {
-        for(int i=0; i<31 && temp_buf[i]; i++) cloned_product[i] = (char)temp_buf[i];
-        cloned_product[31] = 0;
-    }
-    check_serial(xfer->daddr);
-}
-
-void check_product(uint8_t daddr) {
-    if (desc_device.iProduct) {
-        tuh_descriptor_get_string(daddr, desc_device.iProduct, 0x0409, temp_buf, 255, cb_product, 0);
-    } else {
-        check_serial(daddr);
-    }
-}
-
-void cb_manuf(tuh_xfer_t* xfer) {
-    if (xfer->result == XFER_RESULT_SUCCESS) {
-        for(int i=0; i<31 && temp_buf[i]; i++) cloned_manufacturer[i] = (char)temp_buf[i];
-        cloned_manufacturer[31] = 0;
-    }
-    check_product(xfer->daddr);
-}
-
-void cb_device_desc(tuh_xfer_t* xfer) {
-    if (xfer->result == XFER_RESULT_SUCCESS) {
-        cloned_vid = desc_device.idVendor;
-        cloned_pid = desc_device.idProduct;
-        
-        if (desc_device.iManufacturer) {
-            tuh_descriptor_get_string(xfer->daddr, desc_device.iManufacturer, 0x0409, temp_buf, 255, cb_manuf, 0);
-        } else {
-            check_product(xfer->daddr);
-        }
-    } else {
-        cloning_complete = true;
-    }
-}
-
 void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_report, uint16_t desc_len) {
     printf("tuh_hid_mount_cb\n");
 
@@ -131,11 +69,6 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_re
     uint16_t vid;
     uint16_t pid;
     tuh_vid_pid_get(dev_addr, &vid, &pid);
-
-    if (!cloning_complete) {
-        // Start the cloning process by reading the device descriptor
-        tuh_descriptor_get_device(dev_addr, &desc_device, 18, cb_device_desc, 0);
-    }
 
     tuh_itf_info_t itf_info;
     tuh_hid_itf_get_info(dev_addr, instance, &itf_info);
