@@ -1283,9 +1283,7 @@ void handle_set_report1(uint8_t report_id, uint8_t const* buffer, uint16_t bufsi
                     my_mutex_exit(MutexId::QUIRKS);
                     break;
                 }
-                    my_mutex_exit(MutexId::QUIRKS);
-                    break;
-                }
+
                 case ConfigCommand::SET_IDENTITY: {
                     set_identity_t* identity = (set_identity_t*) config_buffer->data;
                     config_usb_vid = identity->usb_vid;
