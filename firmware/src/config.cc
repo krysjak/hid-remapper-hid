@@ -1312,7 +1312,9 @@ void handle_set_report1(uint8_t report_id, uint8_t const* buffer, uint16_t bufsi
                     report.wheel = input->wheel;
                     report.pan = input->pan;
                     
-                    tud_hid_report(REPORT_ID_MOUSE, &report, sizeof(report));
+                    if (tud_hid_n_ready(0)) {
+                        tud_hid_n_report(0, REPORT_ID_MOUSE, &report, sizeof(report));
+                    }
                     break;
                 }
                 default:

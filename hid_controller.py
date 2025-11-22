@@ -34,9 +34,8 @@ class DeviceController:
         if not self.device:
             raise Exception("Device not connected")
         
-        # Report ID 0 (for hidapi), Version (19), Command, Data (variable), CRC (4 bytes)
-        # Total 128 bytes payload + 1 byte report ID
-        # Payload structure: [Version:1][Command:1][Data:122][CRC:4]
+        # Feature Report structure: [ReportID:1][Version:1][Command:1][Data:122][CRC:4]
+        # Total: 128 bytes
         payload = struct.pack('<BB', 19, command) + data
         payload = payload.ljust(124, b'\x00') # Pad data to 124 bytes (128 - 4 for CRC)
         
@@ -45,8 +44,10 @@ class DeviceController:
         crc = zlib.crc32(payload)
         payload += struct.pack('<I', crc)
         
-        # Prepend Report ID (0) for hidapi write
-        self.device.write(b'\x00' + payload)
+        # Send as Feature Report with Report ID 100 (REPORT_ID_CONFIG)
+        # send_feature_report expects [ReportID, ...data]
+        report = bytes([100]) + payload
+        self.device.send_feature_report(report)
 
     def inject_mouse(self, x, y, buttons=0, wheel=0, pan=0):
         """
