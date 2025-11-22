@@ -713,10 +713,7 @@ void load_config(const uint8_t* persisted_config) {
         // set it to false to preserve previous behavior.
         normalize_gamepad_inputs = false;
     }
-        // Normalize gamepad inputs defaults to true, but if we're loading a <18 config,
-        // set it to false to preserve previous behavior.
-        normalize_gamepad_inputs = false;
-    }
+
 
     if ((version == 3) || (version == 4)) {
         load_config_v3_v4(persisted_config);
