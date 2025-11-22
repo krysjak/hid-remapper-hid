@@ -254,6 +254,7 @@ int main() {
 
     next_print = time_us_64() + 1000000;
 
+#if CFG_TUH_ENABLED
     // Disconnect from PC to prevent enumeration with default values
     tud_disconnect();
     
@@ -276,6 +277,7 @@ int main() {
 
     // Connect to PC with (hopefully) cloned info
     tud_connect();
+#endif
 
     while (true) {
         bool tick;
