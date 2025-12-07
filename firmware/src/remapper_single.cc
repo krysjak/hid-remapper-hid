@@ -7,6 +7,7 @@
 #include "pico/time.h"
 
 #include "descriptor_parser.h"
+#include "globals.h"
 #include "out_report.h"
 #include "passthrough.h"
 #include "remapper.h"
