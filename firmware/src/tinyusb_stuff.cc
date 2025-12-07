@@ -29,6 +29,7 @@
 #include "config.h"
 #include "globals.h"
 #include "our_descriptor.h"
+#include "passthrough.h"
 #include "platform.h"
 #include "remapper.h"
 
@@ -125,6 +126,12 @@ char const* string_desc_arr[] = {
 // Invoked when received GET DEVICE DESCRIPTOR
 // Application return pointer to descriptor
 uint8_t const* tud_descriptor_device_cb() {
+    // Режим повного passthrough - повертаємо дескриптор підключеної миші
+    if (passthrough_mode && passthrough_config_descriptor_len > 0) {
+        return passthrough_device_descriptor;
+    }
+
+    // Стандартний режим
     if ((our_descriptor->vid != 0) && (our_descriptor->pid != 0)) {
         desc_device.idVendor = our_descriptor->vid;
         desc_device.idProduct = our_descriptor->pid;
@@ -136,6 +143,12 @@ uint8_t const* tud_descriptor_device_cb() {
 // Application return pointer to descriptor
 // Descriptor contents must exist long enough for transfer to complete
 uint8_t const* tud_descriptor_configuration_cb(uint8_t index) {
+    // Режим повного passthrough - повертаємо дескриптор підключеної миші
+    if (passthrough_mode && passthrough_config_descriptor_len > 0) {
+        return passthrough_config_descriptor;
+    }
+
+    // Стандартний режим
     return configuration_descriptors[our_descriptor->idx];
 }
 
@@ -143,6 +156,12 @@ uint8_t const* tud_descriptor_configuration_cb(uint8_t index) {
 // Application return pointer to descriptor
 // Descriptor contents must exist long enough for transfer to complete
 uint8_t const* tud_hid_descriptor_report_cb(uint8_t itf) {
+    // Режим повного passthrough - повертаємо дескриптор підключеної миші
+    if (passthrough_mode && passthrough_hid_report_descriptor_len > 0 && itf == passthrough_interface_num) {
+        return passthrough_hid_report_descriptor;
+    }
+
+    // Стандартний режим
     if (itf == 0) {
         return our_descriptor->descriptor;
     } else if (itf == 1) {
@@ -171,19 +190,37 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         if (!(index < sizeof(string_desc_arr) / sizeof(string_desc_arr[0])))
             return NULL;
 
-        if (index == 3) {
-            // Serial number
-            uint64_t unique_id = get_unique_id();
-            chr_count = 0;
-            // Convert 64-bit ID to 16 hex characters
-            for (int i = 0; i < 16; i++) {
-                int nibble = (unique_id >> (60 - i * 4)) & 0xF;
-                _desc_str[1 + i] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
-                chr_count++;
-            }
-        } else {
-            const char* str = string_desc_arr[index];
+        const char* str = NULL;
 
+        // В режимі passthrough використовуємо строки від підключеної миші
+        if (passthrough_mode && passthrough_config_descriptor_len > 0) {
+            if (index == 1 && passthrough_manufacturer[0] != 0) {
+                str = passthrough_manufacturer;
+            } else if (index == 2 && passthrough_product[0] != 0) {
+                str = passthrough_product;
+            } else if (index == 3 && passthrough_serial[0] != 0) {
+                str = passthrough_serial;
+            }
+        }
+
+        if (str == NULL) {
+            // Стандартна логіка
+            if (index == 3) {
+                // Serial number
+                uint64_t unique_id = get_unique_id();
+                chr_count = 0;
+                // Convert 64-bit ID to 16 hex characters
+                for (int i = 0; i < 16; i++) {
+                    int nibble = (unique_id >> (60 - i * 4)) & 0xF;
+                    _desc_str[1 + i] = (nibble < 10) ? ('0' + nibble) : ('A' + nibble - 10);
+                    chr_count++;
+                }
+            } else {
+                str = string_desc_arr[index];
+            }
+        }
+
+        if (str != NULL) {
             // Cap at max char
             chr_count = strlen(str);
             if (chr_count > 31)
@@ -203,6 +240,14 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 }
 
 uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) {
+    // Спроба обробити в passthrough режимі
+    uint16_t passthrough_len = passthrough_handle_get_report(itf, report_id, report_type, buffer, reqlen);
+    if (passthrough_len > 0) {
+        // Успішно оброблено в passthrough, повертаємо довжину
+        return passthrough_len;
+    }
+
+    // Стандартна обробка
     if (itf == 0) {
         return handle_get_report0(report_id, buffer, reqlen);
     } else {
@@ -211,6 +256,12 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t
 }
 
 void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
+    // Спроба обробити в passthrough режимі
+    if (passthrough_handle_set_report(itf, report_id, report_type, buffer, bufsize)) {
+        return;  // Оброблено в passthrough
+    }
+
+    // Стандартна обробка
     if (itf == 0) {
         if ((report_id == 0) && (report_type == 0) && (bufsize > 0)) {
             report_id = buffer[0];

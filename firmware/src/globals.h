@@ -78,4 +78,19 @@ struct injected_input_t {
 extern injected_input_t injected_input;
 extern volatile bool injected_input_updated;
 
+// Passthrough mode - копіювання всіх дескрипторів миші
+extern bool passthrough_mode;
+extern uint8_t passthrough_dev_addr;  // Адреса підключеного пристрою
+extern uint8_t passthrough_device_descriptor[18];
+extern uint8_t passthrough_config_descriptor[256];
+extern uint16_t passthrough_config_descriptor_len;
+extern uint8_t passthrough_hid_report_descriptor[1024];
+extern uint16_t passthrough_hid_report_descriptor_len;
+extern uint8_t passthrough_interface_num;
+extern uint16_t passthrough_vid;
+extern uint16_t passthrough_pid;
+extern char passthrough_manufacturer[64];
+extern char passthrough_product[64];
+extern char passthrough_serial[64];
+
 #endif

@@ -8,6 +8,7 @@
 
 #include "descriptor_parser.h"
 #include "out_report.h"
+#include "passthrough.h"
 #include "remapper.h"
 #include "tick.h"
 
@@ -74,11 +75,47 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_re
     tuh_hid_itf_get_info(dev_addr, instance, &itf_info);
     uint8_t itf_num = itf_info.desc.bInterfaceNumber;
 
+    // Захоплюємо HID report descriptor для passthrough режиму
+    if (passthrough_mode) {
+        passthrough_capture_hid_report_descriptor(dev_addr, itf_num, desc_report, desc_len);
+    }
+
     descriptor_received_callback(vid, pid, desc_report, desc_len, (uint16_t) (dev_addr << 8) | instance, hub_port, itf_num);
 
     device_connected_callback((uint16_t) (dev_addr << 8) | instance, vid, pid, hub_port);
 
     tuh_hid_receive_report(dev_addr, instance);
+}
+
+// Callback коли пристрій підключено та сконфігуровано
+void tuh_mount_cb(uint8_t dev_addr) {
+    printf("tuh_mount_cb dev_addr=%d\n", dev_addr);
+
+    if (passthrough_mode) {
+        // Захоплюємо device descriptor
+        tusb_desc_device_t desc_device;
+        if (tuh_descriptor_get_device_sync(dev_addr, &desc_device, sizeof(tusb_desc_device_t)) == XFER_RESULT_SUCCESS) {
+            passthrough_capture_device_descriptor(dev_addr, &desc_device);
+        }
+
+        // Захоплюємо configuration descriptor
+        uint8_t config_buffer[256];
+        if (tuh_descriptor_get_configuration_sync(dev_addr, 0, config_buffer, sizeof(config_buffer)) == XFER_RESULT_SUCCESS) {
+            tusb_desc_configuration_t* desc_config = (tusb_desc_configuration_t*)config_buffer;
+            uint16_t total_len = desc_config->wTotalLength;
+            if (total_len <= sizeof(config_buffer)) {
+                passthrough_capture_config_descriptor(dev_addr, config_buffer, total_len);
+            }
+        }
+
+        // Захоплюємо string descriptors
+        uint16_t str_buffer[64];
+        for (uint8_t str_idx = 1; str_idx <= 3; str_idx++) {
+            if (tuh_descriptor_get_string_sync(dev_addr, str_idx, 0x0409, str_buffer, sizeof(str_buffer)) == XFER_RESULT_SUCCESS) {
+                passthrough_capture_string_descriptor(dev_addr, str_idx, str_buffer, sizeof(str_buffer));
+            }
+        }
+    }
 }
 
 void umount_callback(uint8_t dev_addr, uint8_t instance) {

@@ -1,4 +1,5 @@
 #include "globals.h"
+#include <cstring>
 
 std::unordered_map<uint16_t, std::unordered_map<uint8_t, std::unordered_map<uint32_t, usage_def_t>>> their_usages;
 std::unordered_map<uint16_t, std::unordered_map<uint8_t, std::unordered_map<uint32_t, usage_def_t>>> their_out_usages;
@@ -57,3 +58,18 @@ volatile PersistConfigReturnCode persist_config_return_code = PersistConfigRetur
 
 injected_input_t injected_input = { 0, 0, 0 };
 volatile bool injected_input_updated = false;
+
+// Passthrough mode - копіювання всіх дескрипторів миші
+bool passthrough_mode = true;  // За замовчуванням включений для сумісності з Logitech G Hub
+uint8_t passthrough_dev_addr = 0;  // Адреса підключеного пристрою
+uint8_t passthrough_device_descriptor[18] = { 0 };
+uint8_t passthrough_config_descriptor[256] = { 0 };
+uint16_t passthrough_config_descriptor_len = 0;
+uint8_t passthrough_hid_report_descriptor[1024] = { 0 };
+uint16_t passthrough_hid_report_descriptor_len = 0;
+uint8_t passthrough_interface_num = 0;
+uint16_t passthrough_vid = 0;
+uint16_t passthrough_pid = 0;
+char passthrough_manufacturer[64] = { 0 };
+char passthrough_product[64] = { 0 };
+char passthrough_serial[64] = { 0 };

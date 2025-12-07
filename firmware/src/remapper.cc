@@ -14,6 +14,7 @@
 #include "descriptor_parser.h"
 #include "globals.h"
 #include "our_descriptor.h"
+#include "passthrough.h"
 #include "platform.h"
 #include "remapper.h"
 
@@ -1651,6 +1652,13 @@ inline void monitor_read_input_range(const uint8_t* report, int len, uint32_t so
 }
 
 void handle_received_report(const uint8_t* report, int len, uint16_t interface, uint8_t external_report_id) {
+    // У режимі повного passthrough просто передаємо дані без обробки
+    if (passthrough_mode) {
+        passthrough_forward_report(report, len);
+        return;
+    }
+
+    // Стандартна обробка
     if (our_descriptor->handle_received_report != nullptr) {
         our_descriptor->handle_received_report(report, len, interface, external_report_id);
     }
