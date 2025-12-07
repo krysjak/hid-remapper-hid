@@ -3,8 +3,21 @@
 #include "platform.h"
 #include <cstring>
 #include <cstdio>
+#include "tusb.h"
+
+// Перевіряємо чи доступний USB Host mode
+#if defined(CFG_TUH_HID) && CFG_TUH_HID > 0
+#define PASSTHROUGH_HOST_AVAILABLE 1
 #include "pico/time.h"
 #include "class/hid/hid.h"
+#else
+#define PASSTHROUGH_HOST_AVAILABLE 0
+#endif
+
+// ============================================================================
+// HOST MODE ONLY FUNCTIONS - доступні тільки коли USB Host увімкнено
+// ============================================================================
+#if PASSTHROUGH_HOST_AVAILABLE
 
 // Зберігає копію device descriptor від підключеної миші
 void passthrough_capture_device_descriptor(uint8_t dev_addr, const tusb_desc_device_t* desc) {
@@ -24,7 +37,7 @@ void passthrough_capture_device_descriptor(uint8_t dev_addr, const tusb_desc_dev
 // Зберігає копію configuration descriptor від підключеної миші
 void passthrough_capture_config_descriptor(uint8_t dev_addr, const uint8_t* desc, uint16_t len) {
     if (!passthrough_mode) return;
-    
+
     if (len > sizeof(passthrough_config_descriptor)) {
         printf("Passthrough: config descriptor занадто великий (%d bytes), обрізаю до %d\n", 
                len, sizeof(passthrough_config_descriptor));
@@ -257,3 +270,50 @@ bool passthrough_handle_set_report(uint8_t itf, uint8_t report_id, hid_report_ty
     return false;
 }
 
+#else // !PASSTHROUGH_HOST_AVAILABLE
+
+// ============================================================================
+// STUB FUNCTIONS - для device-only mode (без USB Host)
+// ============================================================================
+
+void passthrough_capture_device_descriptor(uint8_t dev_addr, const tusb_desc_device_t* desc) {
+    (void)dev_addr; (void)desc;
+    // Not available in device-only mode
+}
+
+void passthrough_capture_config_descriptor(uint8_t dev_addr, const uint8_t* desc, uint16_t len) {
+    (void)dev_addr; (void)desc; (void)len;
+    // Not available in device-only mode
+}
+
+void passthrough_capture_hid_report_descriptor(uint8_t dev_addr, uint8_t itf_num, const uint8_t* desc, uint16_t len) {
+    (void)dev_addr; (void)itf_num; (void)desc; (void)len;
+    // Not available in device-only mode
+}
+
+void passthrough_capture_string_descriptor(uint8_t dev_addr, uint8_t index, const uint16_t* desc, uint16_t len) {
+    (void)dev_addr; (void)index; (void)desc; (void)len;
+    // Not available in device-only mode
+}
+
+void passthrough_forward_report(uint8_t const* report, uint16_t len) {
+    (void)report; (void)len;
+    // Not available in device-only mode
+}
+
+bool passthrough_handle_control_request(uint8_t dev_addr, const tusb_control_request_t* request) {
+    (void)dev_addr; (void)request;
+    return false;  // Not available in device-only mode
+}
+
+uint16_t passthrough_handle_get_report(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen) {
+    (void)itf; (void)report_id; (void)report_type; (void)buffer; (void)reqlen;
+    return 0;  // Not available in device-only mode
+}
+
+bool passthrough_handle_set_report(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, const uint8_t* buffer, uint16_t bufsize) {
+    (void)itf; (void)report_id; (void)report_type; (void)buffer; (void)bufsize;
+    return false;  // Not available in device-only mode
+}
+
+#endif // PASSTHROUGH_HOST_AVAILABLE

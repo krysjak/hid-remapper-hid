@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <tusb.h>
+#include "class/hid/hid.h"  // для hid_report_type_t
 
 // Функції для роботи в режимі повного passthrough
 // Зберігає всі дескриптори підключеної миші для прозорої передачі
